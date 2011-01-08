@@ -2,7 +2,7 @@
 PIPERMAIL IMPORT
 ================
 
-Warning: Expirimental.
+Warning: Experimental.
 
 This is the first stab at providing support for Pipermail,
 namely importing Pipermail messages from archive files
@@ -28,7 +28,7 @@ Current features
 
 Usage
 ===== 
-- Put a pipermail archive file in public://
+- Put a Pipermail archive file in public://
 - modify the code to match the filename
 - hit /admin/structure/pipermail
 
