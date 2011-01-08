@@ -6,6 +6,7 @@
  * This is the file description for Pipermail module.
  */
 
+
 /**
  * Implements hook_menu().
  */
@@ -15,7 +16,7 @@ function pipermail_import_menu() {
     'title' => 'Pipermail',
     'description' => 'Start pipermail import',
     'page callback' => 'pipermail_import_start',
-    'access callback' => TRUE,
+    'access callback' => user_access('import pipermail messages'),
   );
   return $items;
 }
@@ -41,6 +42,18 @@ function pipermail_import_node_info() {
 function pipermail_import_form($node, $form_state) { 
   return node_content_form($node, $form_state); 
 } 
+
+/** 
+ * Implements hook_permission(). 
+ */ 
+function pipermail_import_permission() {  
+  return array( 
+  'import pipermail messages' => array( 
+    'title' => t('Import pipermail messages'), 
+    'description' => t('Import pipermail messages'), 
+  ), 
+ ); 
+}
 
 /** 
  * Parses a Pipermail archive file and create a node for every message.
