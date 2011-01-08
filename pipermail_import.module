@@ -14,7 +14,7 @@ function pipermail_import_menu() {
   $items = array();
   $items['admin/structure/pipermail'] = array(
     'title' => 'Pipermail',
-    'description' => 'Start pipermail import',
+    'description' => t('Start pipermail import'),
     'page callback' => 'pipermail_import_start',
     'access callback' => user_access('import pipermail messages'),
   );
@@ -175,6 +175,6 @@ function pipermail_import_start() {
     }
   }
   
-  return "Done.";
+  return t("Done.");
   
 }
