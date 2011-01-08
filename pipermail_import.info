@@ -1,0 +1,8 @@
+name = Pipermail Import
+description = Provides experimental support for Pipermail. 
+package = Mail
+version = "7.x-1.0-dev"
+core = 7.x 
+
+files[] = pipermail_import.install 
+files[] = pipermail_import.module 

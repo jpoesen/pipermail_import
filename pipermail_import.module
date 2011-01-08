@@ -1,0 +1,167 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * This is the file description for Pipermail module.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function pipermail_import_menu() {
+  $items = array();
+  $items['admin/structure/pipermail'] = array(
+    'title' => 'Pipermail',
+    'description' => 'Start pipermail import',
+    'page callback' => 'pipermail_import_start',
+    'access callback' => TRUE,
+  );
+  return $items;
+}
+
+/** 
+ * Implements hook_node_info().
+ */ 
+function pipermail_import_node_info() { 
+  return array( 
+    'pipermail' => array( 
+      'name' => t('Pipermail message'), 
+      'base' => 'pipermail', 
+      'description' => t('Use this content type for Pipermail messages.'), 
+      'has_title' => TRUE, 
+      'title_label' => t('Subject'), 
+    ), 
+  ); 
+} 
+
+/** 
+ * Implements hook_form().
+ */ 
+function pipermail_import_form($node, $form_state) { 
+  return node_content_form($node, $form_state); 
+} 
+
+/** 
+ * Parses a Pipermail archive file and create a node for every message.
+ */
+function pipermail_import_start() {
+  
+  // TODO: find more solid way to require dependency
+  if (!function_exists('mb_convert_encoding')) {
+    drupal_set_message(t('PHP Multibyte String extension not found.'), 'error');
+    return "";
+  }
+  
+  // TODO: make location flexible
+  $uri = 'public://pipermail.txt';
+  
+  // check if file exists
+  if (!is_file($uri)) {
+    drupal_set_message(t('The file %uri does not exist', array('%uri' => $uri)), 'error');
+    return;
+  }
+  
+  // check for bad filename
+  $filename = file_munge_filename(preg_replace('@^.*/@', '', $uri), '', TRUE);
+  $buffer = file_get_contents($uri);
+
+  $output = '';
+
+  // TODO: research message boundary; make flexible.
+  $messages = explode('-------------- section suivante --------------', $buffer);
+  
+  foreach ($messages as $rawmsg) {
+    $from_pos = strpos($rawmsg, 'From: ');
+    $date_pos = strpos($rawmsg, 'Date: ');
+    $subject_pos = strpos($rawmsg, 'Subject: ');
+    $in_reply_to_pos = strpos($rawmsg, 'In-Reply-To:');
+    $references_pos = strpos($rawmsg, 'References:');
+    $message_id_pos = strpos($rawmsg, 'Message-ID:');
+    
+    $msg = new stdClass();
+    
+    // grab the message header info
+    // each time: substring from start of field to start of next field
+    $msg->from = substr($rawmsg, $from_pos, $date_pos - $from_pos);
+    $msg->date = substr($rawmsg, $date_pos, $subject_pos - $date_pos);
+    
+    // 'In-Reply-To: and References: are either both present or both empty.
+    // Adjust message substring parsing accordingly
+    if ($in_reply_to_pos) {
+      $msg->subject = substr($rawmsg, $subject_pos, $in_reply_to_pos - $subject_pos);
+      $msg->in_reply_to = substr($rawmsg, $in_reply_to_pos, $references_pos - $in_reply_to_pos);  
+      $msg->references = substr($rawmsg, $references_pos, $message_id_pos - $references_pos);      
+    } 
+    else {
+      $msg->subject = substr($rawmsg, $subject_pos, $message_id_pos - $subject_pos); 
+      $msg->in_reply_to = '';
+      $msg->references = '';
+    }
+    
+    // grab the Message-ID from the beginning to the first '>' encountered
+    $id_end_pos = strpos($rawmsg, '>', $message_id_pos);
+    $msg->message_id = substr($rawmsg, $message_id_pos,  $id_end_pos- $message_id_pos + 1);
+
+    // grab the message body info
+    // starting from the end of the Message-ID field to the end of the whole message
+    $msg->body = substr($rawmsg, $message_id_pos + strlen($msg->message_id));
+    $msg->body = str_replace("\n", "<br>", $msg->body);
+    $msg->body = check_markup(mb_decode_mimeheader($msg->body), 'full_html'); 
+    
+    // convert values to UTF8 and remove the leading labels
+    // TODO: sanitize + move to helper function
+    $msg->from        = substr(mb_decode_mimeheader($msg->from), 6);
+    $msg->date        = substr(mb_decode_mimeheader($msg->date), 6);
+    $msg->subject     = substr(mb_decode_mimeheader($msg->subject), 9);
+    $msg->subject     = str_replace("_", " ", $msg->subject);
+    $msg->in_reply_to = substr(mb_decode_mimeheader($msg->in_reply_to), 13);
+    $msg->references  = substr(mb_decode_mimeheader($msg->references), 12);
+    $msg->message_id  = substr(mb_decode_mimeheader($msg->message_id), 12);
+    
+    // TODO: find a better way to check if we want to proceed
+    if ($msg->from) {
+      // create a node object and populate its fields
+      $d = date_parse($msg->date);
+      $timestamp = mktime(
+        $d['hour'], $d['minute'], $d['second'], 
+        $d['day'], $d['month'], $d['year']);
+
+      $node = new stdClass();
+      $node->type = 'pipermail';
+      node_object_prepare($node);
+
+      $node->changed = $timestamp;
+      $node->created = $timestamp;    
+      $node->log = t('Created by Pipermail.module');
+      $node->uid = 1;
+      $node->title = $msg->subject;
+      $node->language = LANGUAGE_NONE;
+
+      $node->body[$node->language][0]['value']   =  $msg->body;
+      $node->body[$node->language][0]['summary'] = text_summary($msg->body);
+      $node->body[$node->language][0]['format']  = 'full_html';    
+
+      $node->pipermail_from[$node->language][0]['value']        = $msg->from;
+      $node->pipermail_date[$node->language][0]['value']        = $msg->date;
+      $node->pipermail_in_reply_to[$node->language][0]['value'] = $msg->in_reply_to;
+      $node->pipermail_references[$node->language][0]['value']  = '[temp placeholder]';
+      $node->pipermail_message_id[$node->language][0]['value']  = $msg->message_id;
+      
+      // check if we already have a node with the current message id
+      $query = new EntityFieldQuery;
+      $result = $query
+        ->entityCondition('bundle', 'pipermail', '=')
+        ->fieldCondition('pipermail_message_id', 'value', $msg->message_id, '=')
+        ->count()
+        ->execute();
+        
+      if (!$result) {
+        node_save($node);
+      }
+    }
+  }
+  
+  return "Done.";
+  
+}

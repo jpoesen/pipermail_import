@@ -1,0 +1,213 @@
+<?php 
+// $Id$
+
+/** 
+ * @file 
+ * Install file for the Pipermail module. 
+ */ 
+ 
+/** 
+ * Implements hook_install(). 
+ */ 
+function pipermail_import_install() { 
+  node_types_rebuild(); 
+  $types = node_type_get_types(); 
+  
+  node_add_body_field($types['pipermail']); 
+  
+  // Load the instance definition for our content type's body 
+  $body_instance = field_info_instance('node', 'body', 'pipermail'); 
+  
+  // Configure the body field 
+  $body_instance['type'] = 'text_summary_or_trimmed'; 
+ 
+  // Save our changes to the body field instance. 
+  field_update_instance($body_instance); 
+ 
+  // Create all the fields we are adding to our content type. 
+  foreach (_pipermail_import_installed_fields() as $field) { 
+    field_create_field($field); 
+  } 
+ 
+  // Creates all the instances for our fields. 
+foreach (_pipermail_import_installed_instances() as $instance) { 
+    $instance['entity_type'] = 'node'; 
+    $instance['bundle'] = 'pipermail'; 
+    field_create_instance($instance); 
+  } 
+} 
+ 
+
+/** 
+ * Returns a structured array defining the fields created by this content type. 
+ */ 
+function _pipermail_import_installed_fields() { 
+  $t = get_t(); 
+  return array( 
+    'pipermail_from' => array( 
+      'field_name' => 'pipermail_from', 
+      'label'      => $t('Sender'), 
+      'type'       => 'text', 
+    ), 
+    'pipermail_date' => array( 
+      'field_name' => 'pipermail_date', 
+      'label'      => $t('Date'), 
+      'type'       => 'text', 
+    ), 
+    'pipermail_subject' => array( 
+      'field_name' => 'pipermail_subject', 
+      'label'      => $t('Sender'), 
+      'type'       => 'text', 
+    ), 
+    'pipermail_in_reply_to' => array( 
+      'field_name' => 'pipermail_in_reply_to', 
+      'label'      => $t('In Reply To'), 
+      'type'       => 'text', 
+    ), 
+    'pipermail_references' => array( 
+      'field_name' => 'pipermail_references', 
+      'label'      => $t('References'), 
+      'type'       => 'text', 
+    ), 
+    'pipermail_message_id' => array( 
+      'field_name' => 'pipermail_message_id', 
+      'label'      => $t('Message ID'), 
+      'type'       => 'text', 
+    ), 
+  ); 
+} 
+
+/** 
+ * Returns a structured array defining the field instances associated with this content type. 
+*/ 
+function _pipermail_import_installed_instances() { 
+  $t = get_t(); 
+  return array( 
+    'pipermail_from' => array( 
+      'field_name'  => 'pipermail_from', 
+      'type'        => 'text', 
+      'label'       => $t('Sender'), 
+      'widget'      => array( 
+        'type'    => 'text_textfield', 
+      ), 
+      'display' => array( 
+        'example_node_list' => array( 
+          'label'       => $t('From'), 
+          'type' => 'text', 
+        ), 
+      ), 
+    ),
+
+    'pipermail_date' => array( 
+      'field_name'  => 'pipermail_date', 
+      'type'        => 'text', 
+      'label'       => $t('Date'), 
+      'widget'      => array( 
+        'type'    => 'text_textfield', 
+      ), 
+      'display' => array( 
+        'example_node_list' => array( 
+          'label'       => $t('Date'), 
+          'type' => 'text', 
+        ), 
+      ), 
+    ),
+
+    'pipermail_subject' => array( 
+      'field_name'  => 'pipermail_subject', 
+      'type'        => 'text', 
+      'label'       => $t('Subject'), 
+      'widget'      => array( 
+        'type'    => 'text_textfield', 
+      ), 
+      'display' => array( 
+        'example_node_list' => array( 
+          'label'       => $t('Subject'), 
+          'type' => 'text', 
+        ), 
+      ), 
+    ), 
+     
+    'pipermail_in_reply_to' => array( 
+      'field_name'  => 'pipermail_in_reply_to', 
+      'type'        => 'text', 
+      'label'       => $t('In Reply To'), 
+      'widget'      => array( 
+        'type'    => 'text_textfield', 
+      ), 
+      'display' => array( 
+        'example_node_list' => array( 
+          'label'       => $t('In Reply To'), 
+          'type' => 'text', 
+        ), 
+      ), 
+    ), 
+    
+    'pipermail_references' => array( 
+      'field_name'  => 'pipermail_references', 
+      'type'        => 'text', 
+      'label'       => $t('References'), 
+      'widget'      => array( 
+        'type'    => 'text_textfield', 
+      ), 
+      'display' => array( 
+        'example_node_list' => array( 
+          'label'       => $t('References'), 
+          'type' => 'text', 
+        ), 
+      ), 
+    ),
+    
+    'pipermail_message_id' => array( 
+      'field_name'  => 'pipermail_message_id', 
+      'type'        => 'text', 
+      'label'       => $t('Message ID'), 
+      'widget'      => array( 
+        'type'    => 'text_textfield', 
+      ), 
+      'display' => array( 
+        'example_node_list' => array( 
+          'label'       => $t('Message ID'), 
+          'type' => 'text', 
+        ), 
+      ), 
+    ),
+     
+  ); 
+} 
+ 
+/** 
+ * Implements hook_uninstall(). 
+ */ 
+function pipermail_import_uninstall() { 
+  // Remove all imported Pipermail content
+  // TODO: offer choice.  
+  $sql = 'SELECT nid FROM {node} n WHERE n.type = :type'; 
+  $result = db_query($sql, array(':type' => 'pipermail')); 
+  $nids = array(); 
+  foreach ($result as $row) { 
+    $nids[] = $row->nid; 
+  } 
+  
+  // Delete all the nodes at once 
+  node_delete_multiple($nids); 
+
+  // Loop over each of the fields defined by this module and delete 
+  // all instances of the field, their data, and the field itself. 
+  foreach (array_keys(_pipermail_import_installed_fields()) as $field) { 
+    field_delete_field($field); 
+  } 
+
+  // Loop over any remaining field instances attached to the pipermail 
+  // content type (such as the body field) and delete them individually. 
+  $instances = field_info_instances('node', 'pipermail'); 
+  foreach ($instances as $instance_name => $instance) { 
+    field_delete_instance($instance); 
+  } 
+
+  // Delete our content type 
+  node_type_delete('pipermail'); 
+
+  // Purge all field infromation 
+  field_purge_batch(1000); 
+} 
