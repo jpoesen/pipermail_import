@@ -12,12 +12,23 @@
  */
 function pipermail_import_menu() {
   $items = array();
-  $items['admin/structure/pipermail'] = array(
-    'title' => 'Pipermail',
+  
+  $items['admin/structure/pipermail/start'] = array(
+    'title' => 'Pipermail Start',
     'description' => t('Start pipermail import'),
     'page callback' => 'pipermail_import_start',
-    'access callback' => user_access('import pipermail messages'),
+    'access arguments' => array('import pipermail messages'),
+    'type' => MENU_LOCAL_TASK,
   );
+  
+  $items['admin/structure/pipermail'] = array( 
+     'title' => 'Pipermail', 
+     'description' => 'Configuration for the Pipermail Import module.', 
+     'page callback' => 'drupal_get_form', 
+     'page arguments' => array('pipermail_import_config_form'), 
+     'access arguments' => array('administer pipermail_import'), 
+     'type' => MENU_NORMAL_ITEM, 
+   );
   return $items;
 }
 
@@ -44,6 +55,25 @@ function pipermail_import_form($node, $form_state) {
 } 
 
 /** 
+ * Form builder; Create and display the User Warn configuration  
+ * settings form. 
+ */ 
+function pipermail_import_config_form($form, &$form_state) { 
+  // Text field for the e-mail subject. 
+  $form['pipermail_import_archive_location'] = array( 
+    '#type' => 'textfield', 
+    '#title' => t('Archive location'), 
+    '#description' => t('The path to the archive you want to import.'), 
+    '#default_value' => variable_get('pipermail_import_archive_location', 'public://pipermail.txt'), 
+    '#size' => 40, 
+    '#maxlength' => 120, 
+    '#required' => TRUE, 
+    ); 
+
+  return system_settings_form($form);
+} 
+
+/** 
  * Implements hook_permission(). 
  */ 
 function pipermail_import_permission() {  
@@ -52,6 +82,10 @@ function pipermail_import_permission() {
     'title' => t('Import pipermail messages'), 
     'description' => t('Import pipermail messages'), 
   ), 
+  'administer pipermail_import' => array( 
+    'title' => t('Administer pipermail_import'), 
+    'description' => t('Administer pipermail_import'), 
+  ),
  ); 
 }
 
@@ -67,12 +101,12 @@ function pipermail_import_start() {
   }
   
   // TODO: make location flexible
-  $uri = 'public://pipermail.txt';
+  $uri = variable_get('pipermail_import_archive_location', '');
   
   // check if file exists
   if (!is_file($uri)) {
     drupal_set_message(t('The file %uri does not exist', array('%uri' => $uri)), 'error');
-    return;
+    return '';
   }
   
   // check for bad filename

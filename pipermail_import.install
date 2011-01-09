@@ -210,4 +210,7 @@ function pipermail_import_uninstall() {
 
   // Purge all field infromation 
   field_purge_batch(1000); 
+  
+  // Remove module-specific variables
+  update_sql("DELETE FROM {variable} WHERE name LIKE 'pipermail_import_%'");
 } 

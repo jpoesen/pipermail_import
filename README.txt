@@ -34,7 +34,6 @@ Usage
 
 Limitations
 ===========
-- import file name and location still hardcoded
 - message boundary string still hardcoded
 - not tested with any other Pipermail archive files than the ones at hand
 
