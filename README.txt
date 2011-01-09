@@ -30,7 +30,8 @@ Usage
 ===== 
 - Put a Pipermail archive file in public://
 - modify the code to match the filename
-- hit /admin/structure/pipermail
+- hit /admin/structure/pipermail to configure import file location
+- hit /admin/structure/pipermail/start to start importing
 
 Limitations
 ===========
