@@ -66,17 +66,27 @@ function pipermail_import_form($node, $form_state) {
  * settings form. 
  */ 
 function pipermail_import_config_form($form, &$form_state) { 
-  // Text field for the e-mail subject. 
+
+  // Archive file upload field. 
+  $form['pipermail_import_archive_fid'] = array(
+    '#title' => t('Archive file'),
+    '#type' => 'managed_file',
+    '#description' => t('The archive file you want to import.'),
+    '#default_value' => variable_get('pipermail_import_archive_fid', ''),
+    '#upload_location' => 'public://pipermail_import/',
+    '#extended' => TRUE, // required to avoid bug similar to http://drupal.org/node/745590
+  );
+  
+  // Archive file location (for manual specification). 
   $form['pipermail_import_archive_location'] = array( 
     '#type' => 'textfield', 
-    '#title' => t('Archive location'), 
-    '#description' => t('The path to the archive you want to import.'), 
+    '#title' => t('Alternative location'), 
+    '#description' => t('The path to the archive you want to import. Use this if you want to specify the path to a file you know to exist at that location.'), 
     '#default_value' => variable_get('pipermail_import_archive_location', 'public://pipermail.txt'), 
     '#size' => 40, 
-    '#maxlength' => 120, 
-    '#required' => TRUE, 
+    '#maxlength' => 120,  
     ); 
-
+    
   return system_settings_form($form);
 } 
 
@@ -203,6 +213,7 @@ function pipermail_import_start() {
       $node->pipermail_message_id[$node->language][0]['value']  = $msg->message_id;
       
       // check if we already have a node with the current message id
+      // TODO: replace this with merge query
       $query = new EntityFieldQuery;
       $result = $query
         ->entityCondition('bundle', 'pipermail', '=')
