@@ -20,12 +20,20 @@ class PiperMailImportTestCase extends DrupalWebTestCase {
 
   public function testPermissionCreation() { 
     $permissions = module_invoke('pipermail_import', 'permission');
-    $this->assertTrue(array_key_exists('import pipermail messages', $permissions), t('Import permission exists.'));
-    $this->assertTrue(array_key_exists('administer pipermail_import', $permissions), t('Administer permission exists.'));
+    
+    $this->assertTrue(
+      array_key_exists('import pipermail messages', $permissions), 
+      t('Import permission exists.'));
+    
+    $this->assertTrue(
+      array_key_exists('administer pipermail_import', $permissions), 
+      t('Administer permission exists.'));
   }
   
   public function testNodeTypeCreation(){
     $nodetypes = module_invoke('pipermail_import', 'node_info');
-    $this->assertEqual($nodetypes['pipermail']['name'], t('Pipermail message'), t('Node type pipermail message exists.'));
+    $this->assertEqual(
+      $nodetypes['pipermail']['name'], t('Pipermail message'), 
+      t('Node type pipermail message exists.'));
   }
 } 
