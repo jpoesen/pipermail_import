@@ -227,6 +227,7 @@ function pipermail_import_start() {
     }
   }
   
+  // TODO: output actual nodes processed instead of meaningless message
   return t("Done.");
   
 }
